@@ -1,0 +1,873 @@
+//JIANG Jia Hao Andrea
+
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.*;
+import java.lang.Thread;
+import java.util.Arrays;
+import java.io.*;
+import java.util.StringTokenizer;
+import java.util.ArrayList;
+import java.util.NoSuchElementException;
+
+class GUI_Memory extends JFrame implements ActionListener,ItemListener {
+	//dichairazione componenti
+	private JLabel l1;//stampa coppie rimanenti
+	private JLabel l2;//numero coppie rimanenti
+	private JLabel l3;//stampa coppie scoperte
+	private JLabel l4;//numero coppie scoperte
+	private JLabel l5;//stampa il giocatore
+	private JLabel l6;//stampa il tempo
+	private JLabel l7;//tempo effetivo
+	private JLabel l8;//stampa livello
+	private JLabel testo;//testo del pannelo punteggio
+	private JLabel testo2;//testo del pannelo punteggio
+	private JLabel testoIstruzione;//testo del pannelo punteggio
+	private JLabel[] lClas1;//label usati per le classifiche
+	private JLabel[] lClas2;//label usati per le classifiche
+	private JLabel[] lClas3;//label usati per le classifiche
+	
+	private JButton b1;//ricomincia
+	private JButton b2;//classifica
+	private JButton b3;//istruzioni
+	private JButton bRitorna;//pulsante per ritornare al gioco
+	private JButton bCambia;//pulsante per cambiare l'ultimo nome salvato
+	private JButton[] vettore;//vettore di JButton che corrispondono alle caselle
+	
+	private JPanel p1;//pannello con le varie stampe
+	private JPanel p2;//pannello di tipo cardLayout(qui avvengono i giochi e delle stampe)
+	private JPanel p3;//pannello con i bottoni
+	private JPanel gioco;//pannello usato per il gioco
+	private JPanel classifica;//pannello contenete la classifica
+	private JPanel istruzioni;//pannello contenete la istruzioni
+	private JPanel istruzioni2;//pannello messo nella parte basse del pannello istruzioni
+	private JPanel punteggio;//pannello contenete la istruzioni
+	private JPanel base;//pannello contenete il gioco memory
+	private JPanel pRisultato;//pannello contenete una label e pRisultato2
+	private JPanel pRisultato2;//pannello contenete il pulsante e la textfield per cambiare nome
+	
+	//panelli minori inseriti nel p1
+	private JPanel p11;
+	private JPanel p12;
+	private JPanel p13;
+	private JPanel p14;
+	
+	//panelli minori inseriti dentro il pannello classifica
+	private JPanel[] pClas;
+	//pannello inserito dentro pClas
+	private JPanel[] pClas2;
+	
+	
+	private JTextField t1;//usato per acquisire il nome
+	private JTextField t2;//usato per acquisire il nome nel caso in cui voglia cambiarlo
+	
+    private JComboBox<String> cb;//combobox per i livelli
+	
+    private CardLayout c1;//variabile usata per gestire il cardlayout
+	
+	
+	// variabili di comodo
+	private int nCas;//numero delle caselle che fanno aprte del memory
+	private int prima;//variabile usata per sapere la posizione della prima casella che è stata girata precedentemente
+	private int seconda;//variabile usata per sapere la posizione della seconda casella che è stata girata precedentemente
+	private int[] parallelo; //vettore con le posizioni e il tipo di immagine
+	private boolean[] trovati; //vettore con i boolean che indicano che se si è stato trovato o meno
+	private Timer timer1;//timer usato come cronometro per stilare la classifica
+	private Timer timer2;//timer usato per aspettare un secondo prima di rigirare
+	private long tempoInizio;//tempo da sottrare (usato per gestire il timer)
+	private boolean inizioGioco;//variabile usata per vedere se il gioco è iniziato o meno
+	private String livelli[] = { "EASY","MEDIUM","HARD","MASTER","CHALLENGER" };
+	
+	
+	
+    // metodo costruttore
+	public GUI_Memory(String titolo){
+		super(titolo);
+		
+		Container c;
+		//inizializzazione variabili di comodo
+		prima=-1;
+		seconda=-1;
+		//settaggio caratteristiche
+		l1=new JLabel("coppie rimanenti: ");
+		l2=new JLabel("8");
+		l3=new JLabel("coppie scoperte: ");
+		l4=new JLabel("0");
+		l5=new JLabel("giocatore: ");
+		l6=new JLabel("tempo: ");
+		l7=new JLabel("00:00.000");
+		l8=new JLabel("livello: ");
+		
+		lClas1=new JLabel[6];
+		lClas2=new JLabel[5];
+		lClas3=new JLabel[5];
+		for(int i=0;i<5;i++){
+			lClas1[i]=new JLabel("<html><center>livello: "+livelli[i]+"</center></hmtl>");
+			lClas2[i]=new JLabel("nome:");
+			lClas3[i]=new JLabel("tempo:");
+			lClas3[i].setHorizontalAlignment(0);
+		}
+		lClas1[5]=new JLabel("<html><center>premi RITORNA per ritornare  al gioco <br>!!!&emsp;senza ricominciare&emsp;!!!</center></hmtl>");
+		lClas1[5].setSize(new Dimension(220,200));
+		
+		testo=new JLabel("");
+		testo.setForeground(new Color(255,255,255));
+		testo.setFont(new Font("arial", Font.BOLD, 75));
+		testo.setMaximumSize(new Dimension(800,500));
+		testo.setMinimumSize(new Dimension(800,500));
+		testo.setPreferredSize(new Dimension(800,500));
+		testo.setHorizontalAlignment(0);
+		
+		testo2=new JLabel("<html><center><em>se vuoi cambiare nome digitane uno nuovo qui sotto e premi cambia<br>"
+					+"(se non sara' inserito nessun nome ne qua ne in alto a destra <br>il punteggio verra' salvato con nome 'anonimo')</em></center></hmtl>");
+		testo2.setForeground(new Color(255,255,255));
+		testo2.setFont(new Font("arial", Font.BOLD, 25));
+		testo2.setMaximumSize(new Dimension(800,150));
+		testo2.setMinimumSize(new Dimension(800,150));
+		testo2.setPreferredSize(new Dimension(800,150));
+		testo2.setHorizontalAlignment(0);
+		
+		testoIstruzione=new JLabel();
+		testoIstruzione.setText("<html> Le regole del Memory sono molto semplici."
+			+"<br>L'obiettivo del Memory e' formare coppie di carte uguali girandone 2 a volta, "
+			+"se queste hanno la stessa immagine rimarannno scoperte e si sottraranno all'ammontare delle coppie ancora da ricercare," 
+			+"invece, se saranno diverse, aspettando un secondo si rigireranno e si continuerra' a girare le carte in questo modo finche' non saranno trovate tutte le coppie."
+			+"<br>In questa variante la velocita' sara' tutto perche' in base al tempo impiegato si stilerra' la classifica finale."
+			+"<br>Per giocare serve quindi un po' di memoria e anche un po' di velocita."
+			+"<br> Ricordare la collocazione delle singole coppie di carte uguali infatti e' la chiave per vincere a Memory."
+			+"<br>BUON DIVERTIMENTO E BUONA FORTUNA!!!"
+			+"<br><br><br><br><br>Com'e' strutturata la finestra?"
+			+"<br>Nella parte alta della finestra ci sono tutte le informazioni utili durante il gioco,inoltre si potra' inserire il nome del giocatore che verra' salvato nella classifica."
+			+"<br>Nella parte centrale ci sara' il gioco vero e propio."
+			+"<br>Nella parte bassa ci saranno le varie opzioni:"
+			+"<br><&ensp	RICOMINCIA= fara' ricominciare tutto il gioco rimescolando le posizioni e azzerrando tutti i dati e non saranno salvati."
+			+"<br><&ensp	CLASSIFICA= mostrera' la classifica con nomi e tempi dei vincitori,inoltre le posizioni NON saranno rimescolate se si preme ritorna ma il "
+			+"<br><&ensp<&ensp<&ensp tempo continuera' a scorrere."
+			+"<br><&ensp	ISTRUZIONI= mostrera' la schermata che stai leggendo e contiene le regole e i dettagli del gioco,inoltre le posizioni NON saranno"
+			+"<br><&ensp<&ensp<&ensp rimescolate se si preme ritorna ma il tempo continuera' a scorrere."
+			+"<br><&ensp	LIVELLI= potrete scegliere la difficolta ed in base a questa ci sara' un numero preciso di coppie, se si cambia livello si ricomincera' da capo."
+			+"<br><br><br><br><br><center>!!!!!!!!!!!!!!!!PER RITORNARE AL GIOCO PREMI RITORNA!!!!!!!!!!!!!!!!</center></html>");
+		
+		
+		b1=new JButton("ricomincia");
+		b2=new JButton("classifica");
+		b3=new JButton("istruzioni");
+		bRitorna=new JButton("RITORNA");
+		bCambia=new JButton("cambia");
+		
+		t1=new JTextField("inserisci nome");
+		t1.setColumns(13);
+		t2=new JTextField("inserisci nome");
+		t2.setColumns(13);
+		
+		cb=new JComboBox<String>(livelli);
+		//collegamento gestore
+		b1.setActionCommand("-1");
+		b1.addActionListener(this);
+		
+		b2.setActionCommand("-2");
+		b2.addActionListener(this);
+		
+		b3.setActionCommand("-3");
+		b3.addActionListener(this);
+		
+		bRitorna.setActionCommand("-4");
+		bRitorna.addActionListener(this);
+		
+		bCambia.setActionCommand("-5");
+		bCambia.addActionListener(this);
+		
+        cb.addItemListener(this);
+		
+		//aggiungo dei listener alle caselle di testo
+		aggiungiListener(t1);
+		aggiungiListener(t2);
+		t2.setActionCommand("-5");
+		t2.addActionListener(this);
+		
+		//creazione pannelli
+		p1=new JPanel(new GridLayout(2,2));
+		p2=new JPanel(new CardLayout());
+		p3=new JPanel();
+		gioco=new JPanel();
+		classifica=new JPanel(new GridLayout(2,3)){ 
+			//metto uno sfondo
+			protected void paintComponent(Graphics g) {
+				Image image = new ImageIcon("immagini/sfondo/podio.jpg").getImage();
+				super.paintComponent(g);
+				g.drawImage(image, 0, 0, getWidth(), getHeight(), null);
+			}
+		};
+		punteggio=new JPanel(){ 
+			//metto uno sfondo
+			protected void paintComponent(Graphics g) {
+				Image image = new ImageIcon("immagini/sfondo/risultato.jpg").getImage();
+				super.paintComponent(g);
+				g.drawImage(image, 0, 0, getWidth(), getHeight(), null);
+			}
+		};
+		istruzioni=new JPanel(new BorderLayout()){ 
+			//metto uno sfondo
+			protected void paintComponent(Graphics g) {
+				Image image = new ImageIcon("immagini/sfondo/istruzioni.jpg").getImage();
+				super.paintComponent(g);
+				g.drawImage(image, 0, 0, getWidth(), getHeight(), null);
+			}
+		};
+		istruzioni2=new JPanel();
+		pRisultato=new JPanel(new GridLayout(2,1));
+		pRisultato.setOpaque(false); 
+		pRisultato2=new JPanel();
+		pRisultato2.setOpaque(false); 
+		p11=new JPanel();
+		p12=new JPanel();
+		p13=new JPanel();
+		p14=new JPanel();;
+		base=new JPanel(){ 
+			//metto uno sfondo
+			protected void paintComponent(Graphics g) {
+				Image image = new ImageIcon("immagini/sfondo/base.jpg").getImage();
+				super.paintComponent(g);
+				g.drawImage(image, 0, 0, getWidth(), getHeight(), null);
+			}
+		};
+		
+		pClas=new JPanel[6];
+		for(int i=0;i<5;i++){
+			pClas[i]=new JPanel();
+		}
+		pClas[5]=new JPanel();
+		
+		pClas2=new JPanel[5];
+		for(int i=0;i<5;i++){
+			pClas2[i]=new JPanel(new GridLayout(1,2));
+		}
+		
+		//aggiunta componenti
+		p1.add(p11);
+		p1.add(p13);
+		p1.add(p12);
+		p1.add(p14);
+		
+		p11.add(l1);
+		p11.add(l2);
+		p12.add(l3);
+		p12.add(l4);
+		p13.add(l5);
+		p13.add(t1);
+		p14.add(l6);
+		p14.add(l7);
+		
+		p2.add(base, "base");
+		p2.add(classifica, "classifica");
+		p2.add(punteggio, "punteggio");
+		p2.add(istruzioni, "istruzioni");
+		
+		base.add(gioco);
+		punteggio.add(testo);
+		punteggio.add(pRisultato);
+		istruzioni.add(testoIstruzione, BorderLayout.NORTH);
+		istruzioni.add(istruzioni2, BorderLayout.SOUTH);
+		
+		pRisultato.add(testo2);
+		pRisultato.add(pRisultato2);
+		pRisultato2.add(t2);
+		pRisultato2.add(bCambia);
+		
+		p3.add(b1);
+		p3.add(b2);
+		p3.add(b3);
+		p3.add(l8);
+		p3.add(cb);
+		
+		for(int i=0;i<5;i++){
+			pClas[i].add(lClas1[i]);
+			pClas[i].add(pClas2[i]);
+			pClas[i].setOpaque(false); 
+			classifica.add(pClas[i]);
+		}
+		pClas[5].add(lClas1[5]);
+		pClas[5].setOpaque(false); 
+		classifica.add(pClas[5]);
+		
+		for(int i=0;i<5;i++){
+			pClas2[i].add(lClas2[i]);
+			pClas2[i].add(lClas3[i]);
+			pClas2[i].setMaximumSize(new Dimension(265,300));
+			pClas2[i].setMinimumSize(new Dimension(265,300));
+			pClas2[i].setPreferredSize(new Dimension(265,300));
+			pClas2[i].setOpaque(false); 
+		}
+		
+		//inizializzo e indico cosa farà il timer (il primo parametro è ogni quanto si aggiorna in milissecondi e il secondo è il listener)
+		//timer per il tempo dall'inizio del gioco
+		timer1=new Timer(1, new ActionListener(){  
+			public void actionPerformed(ActionEvent e){  
+				//inizializzo il tempo a 0
+				long differenza=System.currentTimeMillis()-tempoInizio;   
+				int millessimi=(int)(differenza % 1000);  
+				int secondi=(int)(differenza / 1000 % 60);  
+				int minuti=(int)(differenza / 60000);  
+				//il primo parametro indico il formato poi inserisco le variabili che vanno messe al posto di %d(il numero all'interno indica le cifre)
+				String s=String.format("%02d:%02d.%03d",minuti, secondi, millessimi) ;
+				l7.setText(s);  
+			}  
+		});
+		
+		//timer usato per il tempo di rigiro
+		timer2=new Timer(1000, new ActionListener(){  
+			public void actionPerformed(ActionEvent e){  
+				rigira();
+			}  
+		});
+		timer2.setRepeats(false);
+		
+		//aggiunta panelli al container
+		c=getContentPane();
+		//c.setLayout(new FlowLayout());
+		c.add(p1,BorderLayout.NORTH);
+		c.add(p2,BorderLayout.CENTER);
+		c.add(p3,BorderLayout.SOUTH);
+		
+		//faccio vedere all'inizio il memory
+		c1 = (CardLayout)(p2.getLayout());
+		c1.show(p2, "base");
+		
+		//permette la chiusura della pagina
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		
+		//inizio il gioco
+		nCas=16;
+		avviamento(gioco,nCas);
+		
+	}
+	
+	// gestore pulsanti
+  	public void actionPerformed(ActionEvent e) {
+		int btn = Integer.parseInt(e.getActionCommand());
+		switch(btn){
+			//se preme ricomincia
+			case -1: //azzerra tutto
+					cancellaPanel(gioco);
+					fermaTimer();
+					//rifaccio ricominciare il gioco
+					avviamento(gioco,nCas);
+					c1.show(p2, "base");
+					break;
+			//mostra la classifica
+			case -2:pClas[5].add(bRitorna, BorderLayout.CENTER);
+					for(int i=0;i<5;i++){
+						stampaClassifica(lClas2[i],lClas3[i],livelli[i]);
+					}
+					c1.show(p2, "classifica");
+					break;
+			//mostra le istruzioni
+			case -3:istruzioni2.add(bRitorna);
+					c1.show(p2, "istruzioni");
+					break;
+			//mostra la pagina per il memory		
+			case -4:if(Integer.parseInt(l2.getText())!=0){
+						c1.show(p2, "base");
+					}
+					else{
+						c1.show(p2, "punteggio");
+					}					
+					break;
+			//cambia il nome salvato
+			case -5:if(!t2.getText().equals("") && !t2.getText().equals("inserisci nome")){
+						cambiaNome(t2.getText(),l7.getText(),(String)cb.getSelectedItem());
+						t1.setText(t2.getText());
+					}		
+					break;
+			//uso il default per le caselle
+			default: if(!inizioGioco){
+						inizioGioco=true;
+						avviaTimer();
+					 }
+					 gestioneCaselle(btn);
+					break;
+		}
+    }
+	
+	//gestore comboBox
+	//in base alla combo box sceglie il livello
+    public void itemStateChanged(ItemEvent evt) {
+		String lvl=(String)evt.getItem();
+		switch(lvl){
+			case "EASY": nCas=16;
+						break;
+			case "MEDIUM": nCas=24;
+						break;
+			case "HARD": nCas=36;
+						break;
+			case "MASTER": nCas=48;
+						break;
+			case "CHALLENGER": nCas=64;
+						break;
+		}
+		cancellaPanel(gioco);
+		base.add(gioco);
+		avviamento(gioco,nCas);
+		c1.show(p2, "base");
+    }
+	
+	//aggiungo i listener alle textfield
+	public void aggiungiListener(JTextField t){
+		t.addKeyListener(new KeyListener(){
+			public void keyTyped(KeyEvent e){	
+				boolean flag=false;//flag usato per vedere se gia ho eliminato questo carattere
+				//metto un limite a i caratteri che puo inserire
+				if(t.getText().length()>=20 && e.getKeyCode()!=8){
+					e.consume();
+					flag=true;
+				}
+				if(!flag && e.getKeyChar()==';'){
+					//controllo che non inserisca ';' nel nome
+					e.consume();
+					JOptionPane.showMessageDialog(null,"impossibile inserire ' ; ' nel nome");
+				}
+			}
+			public void keyPressed(KeyEvent e){
+			}
+			public void keyReleased(KeyEvent e){
+			}
+		});
+		t.addMouseListener(new MouseListener(){
+			public void mouseClicked(MouseEvent e){
+				//se è il primo click la textfield si cancella
+				if(t.getText().equals("inserisci nome")){
+					t.setText("");
+				}		
+			}
+			public void mousePressed(MouseEvent e){
+			}
+			public void mouseReleased(MouseEvent e){
+			}
+			public void mouseEntered(MouseEvent e){
+			}
+			public void mouseExited(MouseEvent e){
+			}
+		});
+	}
+	
+	//cosa fa una volta iniziato
+	public void avviamento(JPanel gioco,int nCaselle){
+		//ferma eventualmente un cronometro gia partito
+		fermaTimer();
+		//azzero tutte le varibili che potrebbero essere state modifiate
+		l2.setText(""+(nCas/2));
+		l4.setText("0");
+		l7.setText("00:00.000");
+		inizioGioco=false;
+		prima=-1;
+		
+		//riempe il panel
+		riempi(gioco,nCaselle);
+		//istazio i vettori
+		parallelo=new int[nCaselle];
+		trovati=new boolean[nCaselle];
+		//genero le posizioni con cui gestiro i vari button
+		caricamento(parallelo);
+		//inizializzo tute le posizioni a false
+		Arrays.fill(trovati,false);
+	}
+	
+	
+	//crea il gridlayout in base al livello e inizialmente sono tutti coperti
+	public void riempi(JPanel gioco,int nCaselle){
+		//istanziamento
+		vettore=new JButton[nCaselle];
+		
+		gioco.setLayout(new GridLayout((int)Math.sqrt(nCaselle),(int)Math.sqrt(nCaselle)));
+		//inizializzo il vettore 
+		for(int i=0;i<nCaselle;i++){
+			vettore[i]=new JButton((new ImageIcon("immagini/coperto.jpg")));
+			vettore[i].setBorder(null);//cancella i bordi del button
+			vettore[i].addActionListener(this);
+			vettore[i].setActionCommand(""+i);//assegna a ogni bottone un numero indentificativo per il listener
+		}
+		//aggiungo dentro il panel
+		for(int i=0;i<nCaselle;i++){
+			gioco.add(vettore[i]);
+		}
+	}
+	
+	//generazione casuale delle posizioni
+	public void caricamento(int[] vet){
+		//dichiarazione variabili interne 
+		boolean usato;//flag nel caso in cui la posizione generata sia stata gia usata
+		int pos;//posizione in cui mettere il valore
+		
+		//assegna a tutti i valori di vet -1
+		Arrays.fill(vet,-1);
+		
+		//riempimento del vettore
+		for(int i=0;i<vet.length;i++){
+			do{
+				usato=false;
+				//generazione del puntatori 
+				pos=(int) (Math.random()*vet.length);
+				//controllo nel caso in cui la posizione generata sia stata gia usata
+				if(vet[pos]==-1){
+					vet[pos]=(int)(i/2);
+				}
+				else{
+					usato=true;
+				}
+			}while(usato==true);
+		}	
+	}
+	
+	//inizia il timer
+	public void avviaTimer(){
+        tempoInizio=System.currentTimeMillis();  
+		timer1.start();
+	}
+	
+	//ferma il timer
+	public void fermaTimer(){ 
+		timer1.stop();
+	}
+	
+	//rigira le carte 
+	public void rigira(){
+		//ferma eventualmente un cronometro gia partito
+		timer2.stop();
+		vettore[prima].setIcon(new ImageIcon("immagini/coperto.jpg"));
+		vettore[seconda].setIcon(new ImageIcon("immagini/coperto.jpg"));
+		//Azzero la variabile prima
+		prima=-1;
+	}
+	
+	//quando il gioco finisce
+	public void giocoFinito(){ 
+		fermaTimer();
+		//modifico il testo per mostrare i risultati
+		testo.setText("<html><center>COMPLIMENTI,<br>hai finito il livello<br>"+(String)cb.getSelectedItem()+
+			"<br>in soli<br>"+l7.getText()+" !!!</center></html>");
+		salvaNome(t1.getText(),l7.getText(),(String)cb.getSelectedItem());
+		t2.setText(t1.getText());
+		c1.show(p2, "punteggio");
+	}
+	
+	//cancella tutto quello che c'è dentro il panel
+	public void cancellaPanel(JPanel gioco){ 
+		//rimuove le cose dentro il panel
+		gioco.removeAll(); 
+		//riaggiorna lo "schermo"
+		gioco.updateUI();
+		
+	}
+	
+	//cancella tutto quello che c'è dentro il panel
+	public void gestioneCaselle(int btn){ 
+		//controllo che il bottone non sia stato gia scoperto
+		if(!trovati[btn]){
+			//controllo che non siano girati altre caselle se si le rigiro
+			if(timer2.isRunning()){
+				rigira();
+			}
+			//scopro il bottone
+			vettore[btn].setIcon(new ImageIcon("immagini/"+parallelo[btn]+".jpg"));
+			//vede se la carta selezionata è la prima
+			if(prima==-1){
+				prima=btn;
+			}
+			//se è la seconda
+			else{
+				//controla che non sia stao cliccato 2 volte la stessa immagine
+				if(prima!=btn){
+					vettore[btn].setIcon(new ImageIcon("immagini/"+parallelo[btn]+".jpg"));
+					//controlla che siano uguali
+					//se uguali
+					if(parallelo[prima]==parallelo[btn]){
+						//diventano trovati
+						trovati[prima]=true;
+						trovati[btn]=true;
+						//diminuisco il contatore di quelli da trovare e aumento quello dei trovati
+						l2.setText(""+(Integer.parseInt(l2.getText())-1));
+						l4.setText(""+(Integer.parseInt(l4.getText())+1));
+						//Azzero la variabile prima
+						prima=-1;
+						//controllo che il gioco sia finito
+						if((Integer.parseInt(l2.getText()))==0){
+							giocoFinito();
+						}
+					}
+					//se diversi
+					else{
+						seconda=btn;
+						//faccio comincare il timer prima di rigirarli
+						timer2.start();
+					}
+				}
+			}
+			
+		}
+	}
+	
+	
+	
+	
+	//stampa i primi 10 del file da cui acquisisce
+	public void stampaClassifica(JLabel l1,JLabel l2, String livello){
+		//dichiarazione delle variabili locali
+		FileReader fIn;
+		BufferedReader fInBfr;
+		
+		Gamer giocatore;
+		ArrayList<Gamer> vett;
+		
+		String riga;
+		String nome;
+		StringTokenizer tempo;
+		StringTokenizer toke1;
+		int minuti;
+		int secondi;
+		int millesimi;
+		boolean flag;
+		boolean minore;
+		
+		
+		
+		//inizializzazione delle variabili locali
+		fIn=null;
+		fInBfr=null;
+		vett=new ArrayList<Gamer>();
+		riga="";
+		nome="";
+		minuti=0;
+		secondi=0;
+		millesimi=0;
+		flag=true;
+		minore=false;
+		
+		
+		// apertura file
+		try {
+			// creazione dello stream di input associato al file
+			fIn=new FileReader("classifica/"+livello+".csv");
+			fInBfr = new BufferedReader(fIn);  // stream bufferizzato
+		} 
+		catch (IOException e) {
+			try {
+				//creo il file se non esiste
+				FileWriter fOut;
+				fOut = new FileWriter("classifica/"+livello+".csv");
+				fOut.close();
+				//ricreo lo stream di input associato al file
+				fIn=new FileReader("classifica/"+livello+".csv");
+				fInBfr = new BufferedReader(fIn);  // stream bufferizzato
+			}
+			catch (IOException e2) {
+				JOptionPane.showMessageDialog(null,"errore nella creazione del file contenente la classifica di "+livello+" "+e2.getMessage());
+				System.exit(1);
+			}	
+		}
+		//leggo il file
+		try {
+			//leggo le righe del file
+			while((riga=fInBfr.readLine()) != null) {
+				try{
+					//uso lo stringTokenizer per dividere a riga che ho letto
+					toke1=new StringTokenizer(riga,";");
+					//assegno il primo token alla variabile nome
+					nome=toke1.nextToken();
+					//assegno il secondo token alla StringTokenizer tempo
+					tempo=new StringTokenizer(toke1.nextToken(),":");
+					//divido la variabile tempo in minuti secondi e millesimi
+					minuti=Integer.parseInt(tempo.nextToken());
+					secondi=Integer.parseInt(tempo.nextToken(".").replaceFirst(":",""));
+					millesimi=Integer.parseInt(tempo.nextToken());
+					giocatore=new Gamer(nome,minuti,secondi,millesimi);
+					//aggiungo il giocatore al vettore
+					vett.add(giocatore);
+				}	
+				catch(NumberFormatException e){
+					JOptionPane.showMessageDialog(null,"file contenente la classifica del livello "+livello+" corrotto."
+									+"\nPer poter usare la classifica eliminare il file o la cartella(i dati andranno tutti persi)"
+									+"\noppure ritrova l'errore manualmente il formato corretto e' (il nome non può essere vuoto):"
+									+"\nnome1;01:23.456\nnome2;01:23.456");
+					System.exit(1);			
+				}
+				catch(NoSuchElementException e2)	{
+					JOptionPane.showMessageDialog(null,"file contenente la classifica del livello "+livello+" corrotto."
+									+"\nPer poter usare la classifica eliminare il file o la cartella(i dati andranno tutti persi)"
+									+"\noppure ritrova l'errore manualmente il formato corretto e' (il nome non può essere vuoto):"
+									+"\nnome1;01:23.456\nnome2;01:23.456");
+					System.exit(1);			
+				}			
+			}
+			
+			//controllo che dentro al vettore ci sia qualcosa
+			if(vett.size()>0){
+				//riordino il vettore in base al tempo fatto con una bubblesort
+				for(int i=0; (i<(vett.size()-1)) && (flag==true);i++) {
+					flag = false;
+					for(int j=vett.size()-1;j>i;j--) {
+						minore=false;
+						//controllo chi ci abbia messo più tempo
+						if(vett.get(j).getMinuti()<vett.get(j-1).getMinuti()){
+							minore=true;
+						}
+						if(!minore && vett.get(j).getMinuti()==vett.get(j-1).getMinuti() && vett.get(j).getSecondi()<vett.get(j-1).getSecondi()){
+							minore=true;
+						}
+						if(!minore && vett.get(j).getMinuti()==vett.get(j-1).getMinuti() && vett.get(j).getSecondi()==vett.get(j-1).getSecondi() && vett.get(j).getMillesimi()<vett.get(j-1).getMillesimi()){
+							minore=true;
+						}
+						//se l'ultimo ci ha messo più tempo li scambio
+						if(minore){
+							vett.add((j-1),vett.get(j));
+							vett.remove(j+1);
+							flag=true;
+						}
+					}
+				}
+			}
+
+			//"ripulisco" il vettore
+			if(vett.size()>10){
+				//dato che faccio una classifica dei primi 10 cancello gli altri
+				for(int i=vett.size()-1;i>10;i--){
+					vett.remove(i);
+				}
+			}	
+			else{
+				//se sono meno di 10
+				giocatore=new Gamer("nessun giocatore",0,0,0);
+				for(int i=vett.size()-1;i<10;i++){
+					vett.add(giocatore);
+				}
+			}
+			
+			//azzero la label
+			l1.setText("nome:<br>");
+			l2.setText("tempo:<br>");
+			//inserisco nella label il vettore
+			for(int i=0;i<10;i++){
+				l1.setText(l1.getText()+""+(i+1)+")"+vett.get(i).getNome()+"<br>");
+				l2.setText(l2.getText()+vett.get(i).stampaTempo()+"<br>");
+			}
+			//setto le label con la scrittura html
+			l1.setText("<html>"+l1.getText()+"</html>");
+			l2.setText("<html>"+l2.getText()+"</html>");
+		
+			// chiusura dello stream di input
+			fInBfr.close();
+			fIn.close();
+		} 
+		catch (IOException e) {
+			JOptionPane.showMessageDialog(null,"Errore nella scrittura/chiusura del file contenente la classifica di "+livello+": "+e.getMessage());
+			System.exit(1);
+		}
+		
+	}
+	
+	//salva il nome su t1 nel file in base al livello
+	public void salvaNome(String nome,String tempo,String livello){
+		//dichiarazione delle variabili locali
+		FileWriter fOut;
+		//inizializzazione delle variabili
+		fOut=null;
+		// apertura file
+		try {
+			fOut = new FileWriter("classifica/"+livello+".csv",true);
+		} 
+		catch (IOException e) {
+			JOptionPane.showMessageDialog(null,"Errore nell'apertura del file da scrivere: "+e.getMessage());
+			System.exit(1);
+		}
+		try {
+			if(nome.equals("inserisci nome")){
+				fOut.write("anonimo;"+tempo+"\n"); 
+			}
+			else{
+				fOut.write(nome+";"+tempo+"\n");
+			}			
+				
+		}catch (IOException e) {
+				JOptionPane.showMessageDialog(null,"Errore nella scrittura del file: "+e.getMessage());
+				System.exit(1);
+		}
+		// chiusura dello stream di output
+		try{
+			fOut.close();
+		} 
+		catch(IOException e) {
+				JOptionPane.showMessageDialog(null,"Errore nella chiusura del file: "+e.getMessage());
+				System.exit(1);
+		}
+	}
+	
+	//cambia l'ultimo nome salvato
+	public void cambiaNome(String nuovo,String tempo, String livello){
+		//dichiarazione delle variabili locali
+		FileReader fIn;
+		BufferedReader fInBfr;
+		FileWriter fOut;
+		ArrayList<String> vett;
+		String riga;
+		
+		//inizializzazione delle variabili locali
+		fIn=null;
+		fInBfr=null;
+		fOut=null;
+		vett=new ArrayList<String>();
+		
+		
+		// apertura file in lettura
+		try {
+			// creazione dello stream di input associato al file
+			fIn=new FileReader("classifica/"+livello+".csv");
+			fInBfr = new BufferedReader(fIn);  // stream bufferizzato
+		} 
+		catch (IOException e) {
+				JOptionPane.showMessageDialog(null,"errore nella modifica del file contenente la classifica di "+livello+" "+e.getMessage());
+				System.exit(1);
+		}
+		//leggo il file
+		try {
+			//leggo le righe del file
+			while((riga=fInBfr.readLine()) != null) {
+				//le salvo dentro al vettore
+				vett.add((riga+"\n"));
+			}	
+			// chiusura dello stream di input
+			fInBfr.close();
+			fIn.close();
+		} 
+		catch (IOException e) {
+			JOptionPane.showMessageDialog(null,"Errore nella scrittura/chiusura del file contenente la classifica di "+livello+": "+e.getMessage());
+			System.exit(1);
+		}
+		// apertura file in scrittura lo sovrascrivo
+		try {
+			fOut = new FileWriter("classifica/"+livello+".csv",false);
+		} 
+		catch (IOException e) {
+			JOptionPane.showMessageDialog(null,"Errore nell'apertura del file da scrivere: "+e.getMessage());
+			System.exit(1);
+		}
+		try {
+			//riscrivo tutte le righe tranne l'ultima
+			for(int i=0; i<vett.size()-1; i++) {
+				fOut.write(vett.get(i)); 
+			}
+			//scrivo l'ultima riga con il nuovo nome	
+			fOut.write(nuovo+";"+tempo+"\n");
+		}catch (IOException e) {
+				JOptionPane.showMessageDialog(null,"Errore nella scrittura del file: "+e.getMessage());
+				System.exit(1);
+		}
+		// chiusura dello stream di output
+		try{
+			fOut.close();
+		} 
+		catch(IOException e) {
+				JOptionPane.showMessageDialog(null,"Errore nella chiusura del file: "+e.getMessage());
+				System.exit(1);
+		}
+	}
+		
+}
